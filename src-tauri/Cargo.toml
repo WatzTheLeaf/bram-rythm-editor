@@ -1,0 +1,21 @@
+[package]
+name = "bram-rythm-editor"
+version = "1.0.0"
+description = "A Tauri App"
+authors = ["WatzTheLeaf <watztheleaf@pm.me>"]
+edition = "2021"
+
+[lib]
+name = "bram_rythm_editor_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["protocol-asset"] }
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+bram-audio-parser = { git = "https://github.com/watztheleaf/bram-audio-parser"}
+tauri-plugin-dialog = "2"

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="/src/styles.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Audio Mapper</title>
+  <script type="module" src="/src/main.ts" defer></script>
+</head>
+
+<body>
+<div class="app">
+  <header class="header">
+    <h1>Audio Mapper</h1>
+    <div class="controls">
+      <div class="zoom-controls">
+        <button id="zoom-out" class="btn-icon" title="Zoom out">−</button>
+        <button id="zoom-in" class="btn-icon" title="Zoom in">+</button>
+      </div>
+      <button id="load-btn" class="btn-primary">Load Audio</button>
+    </div>
+  </header>
+
+  <main class="timeline-wrapper">
+    <div class="timeline-container">
+      <div class="channel-group">
+        <div class="channel-label">L</div>
+        <div id="channel-1" class="channel"></div>
+      </div>
+
+      <div class="channel-group">
+        <div class="channel-label">R</div>
+        <div id="channel-2" class="channel"></div>
+      </div>
+    </div>
+    <div class="scrollbar-container">
+      <div id="unified-scrollbar" class="unified-scrollbar"></div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="info">
+      <span id="sample-count">0 samples</span>
+      <span id="selection-info"></span>
+    </div>
+  </footer>
+</div>
+</body>
+</html>
