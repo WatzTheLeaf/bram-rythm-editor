@@ -13,6 +13,12 @@
   <header class="header">
     <h1>Audio Mapper</h1>
     <div class="controls">
+      <div class="audio-controls">
+        <button id="audio-play" class="btn-icon">▶</button>
+        <button id="audio-pause" class="btn-icon">⏸</button>
+        <button id="audio-stepstart" class="btn-icon">⏮</button>
+        <button id="audio-stepend" class="btn-icon">⏭</button>
+      </div>
       <div class="zoom-controls">
         <button id="zoom-out" class="btn-icon" title="Zoom out">−</button>
         <button id="zoom-in" class="btn-icon" title="Zoom in">+</button>
@@ -32,6 +38,12 @@
         <div class="channel-label">R</div>
         <div id="channel-2" class="channel"></div>
       </div>
+
+      <div class="channel-group">
+        <div class="channel-label">INPUTS</div>
+        <div id="channel-input" class="channel"></div>
+      </div>
+
     </div>
     <div class="scrollbar-container">
       <div id="unified-scrollbar" class="unified-scrollbar"></div>

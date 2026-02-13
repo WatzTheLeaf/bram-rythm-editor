@@ -54,11 +54,11 @@ body {
 
 .controls {
   display: flex;
-  gap: 1rem;
+  gap: 2.5rem;
   align-items: center;
 }
 
-.zoom-controls {
+.zoom-controls, .audio-controls {
   display: flex;
   gap: 0.25rem;
 }
@@ -127,7 +127,7 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: 2rem 0 0;
+  justify-content: space-evenly;
 }
 
 .channel-group {
@@ -164,6 +164,10 @@ body {
 
 .channel::-webkit-scrollbar {
   height: 6px;
+}
+
+#channel-input{
+  min-height: 20px;
 }
 
 /* Unified scrollbar */
@@ -238,7 +242,7 @@ body {
 
 .sample-letter {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 1rem;
+  font-size: 2rem;
   font-weight: 700;
   color: var(--accent);
   user-select: none;

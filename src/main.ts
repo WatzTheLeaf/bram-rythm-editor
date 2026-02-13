@@ -1,13 +1,23 @@
-import { invoke } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-dialog";
+import {invoke} from "@tauri-apps/api/core";
+import {open} from "@tauri-apps/plugin-dialog";
+import {clamp} from "./maths.ts";
+
+enum ChannelType {
+    Audio, Input
+}
 
 interface AudioData {
     channel1: number[];
     channel2: number[];
 }
 
+interface Channel {
+    id: number,
+    type: ChannelType
+}
+
 let audioData: AudioData | null = null;
-let selectedSample: { channel: number; index: number } | null = null;
+let selectedSample: { index: number } | null = null;
 let currentZoom = 40; // Default sample width in pixels
 const MIN_ZOOM = 20;
 const MAX_ZOOM = 100;
@@ -15,10 +25,9 @@ const ZOOM_STEP = 10;
 
 async function loadAudioData(path: string): Promise<void> {
 
-    const result: number[][] = await invoke("get_wav_data", { path });
+    const result: number[][] = await invoke("get_wav_data", {path});
     audioData = {
-        channel1: result[0],
-        channel2: result[1],
+        channel1: result[0], channel2: result[1],
     };
     renderTimeline();
     updateSampleCount();
@@ -30,22 +39,33 @@ function renderTimeline(): void {
 
     const channel1Element = document.getElementById("channel-1");
     const channel2Element = document.getElementById("channel-2");
+    const channelInputElement = document.getElementById("channel-input");
 
-    if (!channel1Element || !channel2Element) return;
+    if (!channel1Element || !channel2Element || !channelInputElement) return;
 
     channel1Element.innerHTML = "";
     channel2Element.innerHTML = "";
+    channelInputElement.innerHTML = "";
+    const channel1Object = {id: 1, type: ChannelType.Audio}
+    const channel2Object = {id: 2, type: ChannelType.Audio}
+    const channelInputObject = {id: 3, type: ChannelType.Input}
 
     // Render channel 1
     audioData.channel1.forEach((value, index) => {
-        const sample = createSampleElement(value, index, 1);
+        const sample = createSampleElement(value, index, channel1Object);
         channel1Element.appendChild(sample);
     });
 
     // Render channel 2
     audioData.channel2.forEach((value, index) => {
-        const sample = createSampleElement(value, index, 2);
+        const sample = createSampleElement(value, index, channel2Object);
         channel2Element.appendChild(sample);
+    });
+
+    // Render input channel
+    audioData.channel1.forEach((_value, index) => {
+        const sample = createSampleElement(0, index, channelInputObject);
+        channelInputElement.appendChild(sample);
     });
 
     // Update scrollbar width after rendering
@@ -57,23 +77,26 @@ function renderTimeline(): void {
 }
 
 // Create a single sample element
-function createSampleElement(value: number, index: number, channel: number): HTMLElement {
+function createSampleElement(value: number, index: number, channel: Channel): HTMLElement {
     const sample = document.createElement("div");
     sample.className = "sample";
-    sample.dataset.channel = channel.toString();
+    sample.dataset.channel = channel.id.toString();
     sample.dataset.index = index.toString();
 
-    // Visual bar representing amplitude
-    const bar = document.createElement("div");
-    bar.className = "sample-bar";
-    bar.style.height = `${Math.max(value * 100, 2)}%`;
-    sample.appendChild(bar);
+    if (channel.type === ChannelType.Audio) {// Visual bar representing amplitude
+        const bar = document.createElement("div");
+        bar.className = "sample-bar";
+        bar.style.height = `${Math.max(value * 100, 2)}%`;
+        sample.appendChild(bar);
+    }
 
-    // Letter display
-    const letter = document.createElement("div");
-    letter.className = "sample-letter";
-    letter.textContent = "";
-    sample.appendChild(letter);
+    if (channel.type === ChannelType.Input) {
+        // Letter display
+        const letter = document.createElement("div");
+        letter.className = "sample-letter";
+        letter.textContent = "";
+        sample.appendChild(letter);
+    }
 
     // Sample index
     const indexLabel = document.createElement("div");
@@ -83,20 +106,22 @@ function createSampleElement(value: number, index: number, channel: number): HTM
 
     // Click handler for selection
     sample.addEventListener("click", () => {
-        selectSample(channel, index, sample);
+        selectSample(index);
     });
 
     return sample;
 }
 
 // Select a sample
-function selectSample(channel: number, index: number, element: HTMLElement): void {
+function selectSample(index: number): void {
 
     deselectSamples();
 
-    // Add new selection
-    element.classList.add("selected");
-    selectedSample = { channel, index };
+    document.querySelectorAll(`[data-index="${index}"]`).forEach((el) => {
+        el.classList.add("selected")
+    })
+
+    selectedSample = {index};
 
     updateSelectionInfo();
 }
@@ -112,35 +137,46 @@ function deselectSamples() {
 document.addEventListener("keydown", (e: KeyboardEvent) => {
     if (!selectedSample || !audioData) return;
 
-    if (e.key === "Escape"){
+    // console.log(e.key)
+
+    if (e.key === "Escape") {
         deselectSamples();
         return;
     }
 
+    if (e.key === "ArrowLeft") {
+        if (selectedSample.index > 0) {
+            selectSample(selectedSample.index - 1);
+        }
+        return;
+    }
+
+    if (e.key === "ArrowRight") {
+        if (selectedSample.index < audioData.channel1.length - 1) {
+            selectSample(selectedSample.index + 1);
+        }
+        return;
+    }
+
     if (e.key === "Backspace" || e.key === "Delete") {
-        assignLetter(selectedSample.channel, selectedSample.index, "");
+        assignLetter(selectedSample.index, "");
+        return;
     }
 
     const uppercaseKey = e.key.toUpperCase();
     if (uppercaseKey.length === 1 && uppercaseKey >= "A" && uppercaseKey <= "Z") {
-        assignLetter(selectedSample.channel, selectedSample.index, uppercaseKey);
+        assignLetter(selectedSample.index, uppercaseKey);
     }
 
 });
 
-function assignLetter(channel: number, index: number, letter: string): void {
-    const channelEl = document.getElementById(`channel-${channel}`);
+function assignLetter(index: number, letter: string): void {
+    const channelEl = document.getElementById(`channel-input`);
     if (!channelEl) return;
-
-    const sample = channelEl.querySelector(
-        `[data-channel="${channel}"][data-index="${index}"]`
-    ) as HTMLElement;
-
+    const sample = channelEl.querySelector(`[data-index="${index}"]`) as HTMLElement;
     if (!sample) return;
-
     const letterEl = sample.querySelector(".sample-letter") as HTMLElement;
     if (!letterEl) return;
-
     letterEl.textContent = letter;
 
     if (letter) {
@@ -148,7 +184,6 @@ function assignLetter(channel: number, index: number, letter: string): void {
     } else {
         sample.classList.remove("has-letter");
     }
-
     updateSelectionInfo();
 }
 
@@ -166,28 +201,26 @@ function updateSampleCount(): void {
 function updateSelectionInfo(): void {
     const infoEl = document.getElementById("selection-info");
     if (!infoEl) return;
-
     if (!selectedSample) {
         infoEl.textContent = "";
         return;
     }
 
-    const channelEl = document.getElementById(`channel-${selectedSample.channel}`);
+    const channelEl = document.getElementById(`channel-input`);
     if (!channelEl) return;
-
-    const sample = channelEl.querySelector(
-        `[data-channel="${selectedSample.channel}"][data-index="${selectedSample.index}"]`
-    );
-
+    const sample = channelEl.querySelector(`[data-index="${selectedSample.index}"]`);
     if (!sample) return;
-
     const letterEl = sample.querySelector(".sample-letter") as HTMLElement;
     const letter = letterEl?.textContent || "—";
+    infoEl.textContent = `CHinput #${selectedSample.index}: ${letter}`;
 
-    infoEl.textContent = `CH${selectedSample.channel} #${selectedSample.index}: ${letter}`;
+    const scrollbar = document.getElementById("unified-scrollbar");
+    const channel1 = document.getElementById("channel-1");
+    if (!scrollbar) return;
+    const value: number = (selectedSample.index + 1.5) * (currentZoom + 4) - (channel1?.getBoundingClientRect().width || 0) * 0.5;
+    scrollbar.scrollTo({left: clamp(value, 0, scrollbar.scrollWidth)})
 }
 
-// Initialize app
 window.addEventListener("DOMContentLoaded", () => {
     const loadBtn = document.getElementById("load-btn");
     const zoomInBtn = document.getElementById("zoom-in");
@@ -197,10 +230,8 @@ window.addEventListener("DOMContentLoaded", () => {
         loadBtn.addEventListener("click", async () => {
             try {
                 const selected = await open({
-                    multiple: false,
-                    filters: [{
-                        name: 'WAV Audio',
-                        extensions: ['wav']
+                    multiple: false, filters: [{
+                        name: 'WAV Audio', extensions: ['wav']
                     }]
                 });
 
@@ -229,13 +260,15 @@ function setupUnifiedScrollbar(): void {
     const scrollbar = document.getElementById("unified-scrollbar");
     const channel1 = document.getElementById("channel-1");
     const channel2 = document.getElementById("channel-2");
+    const channelInput = document.getElementById("channel-input");
 
-    if (!scrollbar || !channel1 || !channel2) return;
+    if (!scrollbar || !channel1 || !channel2 || !channelInput) return;
 
     // Update scrollbar content width when channels change
     const updateScrollbarWidth = () => {
-        const totalWidth = channel1.scrollWidth;
-        scrollbar.innerHTML = `<div style="width: ${totalWidth}px; height: 1px;"></div>`;
+        if (!audioData) return;
+        const totalWidth = (currentZoom + 4) * (audioData.channel1.length + 1);
+        scrollbar.innerHTML = `<div style="width: ${totalWidth}px; height: 1px;"/>`;
     };
 
     // Sync channels with scrollbar
@@ -247,6 +280,7 @@ function setupUnifiedScrollbar(): void {
             const scrollLeft = scrollbar.scrollLeft;
             channel1.scrollLeft = scrollLeft;
             channel2.scrollLeft = scrollLeft;
+            channelInput.scrollLeft = scrollLeft;
             requestAnimationFrame(() => {
                 isScrolling = false;
             });
@@ -265,6 +299,7 @@ function setupUnifiedScrollbar(): void {
 
     channel1.addEventListener("scroll", syncScrollbar);
     channel2.addEventListener("scroll", syncScrollbar);
+    channelInput.addEventListener("scroll", syncScrollbar);
 
     (window as any).updateScrollbarWidth = updateScrollbarWidth;
 }
@@ -286,10 +321,7 @@ function zoomOut(): void {
 function applyZoom(): void {
     document.documentElement.style.setProperty('--sample-width', `${currentZoom}px`);
 
-    // Update scrollbar width after zoom
-    setTimeout(() => {
-        if ((window as any).updateScrollbarWidth) {
-            (window as any).updateScrollbarWidth();
-        }
-    }, 100);
+    if ((window as any).updateScrollbarWidth) {
+        (window as any).updateScrollbarWidth();
+    }
 }
