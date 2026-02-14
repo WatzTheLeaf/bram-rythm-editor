@@ -38,6 +38,16 @@ async function loadSamplesData(path: string): Promise<void> {
 function loadAudio(path: string){
     const assetUrl = convertFileSrc(path);
     audio = new Audio(assetUrl);
+    audio.addEventListener("play", () => {
+        requestAnimationFrame(updateAudioCursor);
+    });
+}
+
+function updateAudioCursor(){
+    if(!audio) return;
+    if(audio.paused) return;
+    selectSample(Math.floor(audio.currentTime * 5));
+    requestAnimationFrame(updateAudioCursor)
 }
 
 function renderTimeline(): void {
@@ -92,7 +102,7 @@ function createSampleElement(value: number, index: number, channel: Channel): HT
     if (channel.type === ChannelType.Audio) {// Visual bar representing amplitude
         const bar = document.createElement("div");
         bar.className = "sample-bar";
-        bar.style.height = `${Math.max(value * 100, 2)}%`;
+        bar.style.height = `${Math.max(Math.abs(value-0.5) * 150, 2)}%`;
         sample.appendChild(bar);
     }
 
@@ -113,6 +123,7 @@ function createSampleElement(value: number, index: number, channel: Channel): HT
     // Click handler for selection
     sample.addEventListener("click", () => {
         selectSample(index);
+        audioStepToSample();
     });
 
     return sample;
@@ -244,13 +255,20 @@ function audioStepStart() {
     audio.pause();
     audio.currentTime = 0;
     activeStyleForPauseButton();
+    selectSample(0);
 }
 
 function audioStepEnd() {
-    if (!audio) return;
+    if (!audio || !samplesData) return;
     audio.pause();
     audio.currentTime = audio.duration;
     activeStyleForPauseButton();
+    selectSample(samplesData.left.length-1);
+}
+
+function audioStepToSample(){
+    if (!audio || !selectedSample || !samplesData) return;
+    audio.currentTime = selectedSample.index / samplesData.left.length * audio.duration;
 }
 
 window.addEventListener("DOMContentLoaded", () => {
