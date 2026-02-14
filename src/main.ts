@@ -112,19 +112,25 @@ function createSampleElement(value: number, index: number, channel: Channel): HT
         letter.className = "sample-letter";
         letter.textContent = "";
         sample.appendChild(letter);
-    }
 
-    // Sample index
-    const indexLabel = document.createElement("div");
-    indexLabel.className = "sample-index";
-    indexLabel.textContent = index.toString();
-    sample.appendChild(indexLabel);
+        // Sample index
+        const indexLabel = document.createElement("div");
+        indexLabel.className = "sample-index";
+        indexLabel.textContent = index.toString();
+        sample.appendChild(indexLabel);
+    }
 
     // Click handler for selection
     sample.addEventListener("click", () => {
         selectSample(index);
         audioStepToSample();
     });
+
+    switch (channel.id) {
+        case 1: sample.classList.add("sample-bot");break;
+        case 2: sample.classList.add("sample-top");break;
+        default: sample.classList.add("sample-default");break;
+    }
 
     return sample;
 }
