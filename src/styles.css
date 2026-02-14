@@ -91,6 +91,13 @@ body {
   transform: scale(0.95);
 }
 
+.btn-playing {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent);
+  filter: hue-rotate(-90deg);
+}
+
 .btn-primary {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.875rem;

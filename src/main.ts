@@ -1,4 +1,4 @@
-import {invoke} from "@tauri-apps/api/core";
+import {convertFileSrc, invoke} from "@tauri-apps/api/core";
 import {open} from "@tauri-apps/plugin-dialog";
 import {clamp} from "./maths.ts";
 
@@ -6,9 +6,9 @@ enum ChannelType {
     Audio, Input
 }
 
-interface AudioData {
-    channel1: number[];
-    channel2: number[];
+interface SamplesData {
+    left: number[];
+    right: number[];
 }
 
 interface Channel {
@@ -16,26 +16,32 @@ interface Channel {
     type: ChannelType
 }
 
-let audioData: AudioData | null = null;
+let samplesData: SamplesData | null = null;
+let audio: HTMLAudioElement | null = null;
 let selectedSample: { index: number } | null = null;
 let currentZoom = 40; // Default sample width in pixels
 const MIN_ZOOM = 20;
 const MAX_ZOOM = 100;
 const ZOOM_STEP = 10;
 
-async function loadAudioData(path: string): Promise<void> {
+async function loadSamplesData(path: string): Promise<void> {
 
     const result: number[][] = await invoke("get_wav_data", {path});
-    audioData = {
-        channel1: result[0], channel2: result[1],
+    samplesData = {
+        left: result[0], right: result[1],
     };
     renderTimeline();
     updateSampleCount();
 
 }
 
+function loadAudio(path: string){
+    const assetUrl = convertFileSrc(path);
+    audio = new Audio(assetUrl);
+}
+
 function renderTimeline(): void {
-    if (!audioData) return;
+    if (!samplesData) return;
 
     const channel1Element = document.getElementById("channel-1");
     const channel2Element = document.getElementById("channel-2");
@@ -51,19 +57,19 @@ function renderTimeline(): void {
     const channelInputObject = {id: 3, type: ChannelType.Input}
 
     // Render channel 1
-    audioData.channel1.forEach((value, index) => {
+    samplesData.left.forEach((value, index) => {
         const sample = createSampleElement(value, index, channel1Object);
         channel1Element.appendChild(sample);
     });
 
     // Render channel 2
-    audioData.channel2.forEach((value, index) => {
+    samplesData.right.forEach((value, index) => {
         const sample = createSampleElement(value, index, channel2Object);
         channel2Element.appendChild(sample);
     });
 
     // Render input channel
-    audioData.channel1.forEach((_value, index) => {
+    samplesData.left.forEach((_value, index) => {
         const sample = createSampleElement(0, index, channelInputObject);
         channelInputElement.appendChild(sample);
     });
@@ -135,7 +141,7 @@ function deselectSamples() {
 
 // Handle keyboard input for letter assignment
 document.addEventListener("keydown", (e: KeyboardEvent) => {
-    if (!selectedSample || !audioData) return;
+    if (!selectedSample || !samplesData) return;
 
     // console.log(e.key)
 
@@ -152,7 +158,7 @@ document.addEventListener("keydown", (e: KeyboardEvent) => {
     }
 
     if (e.key === "ArrowRight") {
-        if (selectedSample.index < audioData.channel1.length - 1) {
+        if (selectedSample.index < samplesData.left.length - 1) {
             selectSample(selectedSample.index + 1);
         }
         return;
@@ -189,12 +195,12 @@ function assignLetter(index: number, letter: string): void {
 
 function updateSampleCount(): void {
 
-    if (!audioData) return;
+    if (!samplesData) return;
     const countEl = document.getElementById("sample-count");
 
     if (!countEl) return;
 
-    countEl.textContent = `${audioData.channel1.length} samples`;
+    countEl.textContent = `${samplesData.left.length} samples`;
 
 }
 
@@ -221,10 +227,40 @@ function updateSelectionInfo(): void {
     scrollbar.scrollTo({left: clamp(value, 0, scrollbar.scrollWidth)})
 }
 
+function audioPlay() {
+    if (!audio) return;
+    audio.play().then(_ => {});
+    activeStyleForPlayButton();
+}
+
+function audioPause() {
+    if (!audio) return;
+    audio.pause();
+    activeStyleForPauseButton();
+}
+
+function audioStepStart() {
+    if (!audio) return;
+    audio.pause();
+    audio.currentTime = 0;
+    activeStyleForPauseButton();
+}
+
+function audioStepEnd() {
+    if (!audio) return;
+    audio.pause();
+    audio.currentTime = audio.duration;
+    activeStyleForPauseButton();
+}
+
 window.addEventListener("DOMContentLoaded", () => {
     const loadBtn = document.getElementById("load-btn");
     const zoomInBtn = document.getElementById("zoom-in");
     const zoomOutBtn = document.getElementById("zoom-out");
+    const audioPlayBtn = document.getElementById("audio-play");
+    const audioPauseBtn = document.getElementById("audio-pause");
+    const audioStepStartBtn = document.getElementById("audio-stepstart");
+    const audioStepEndBtn = document.getElementById("audio-stepend");
 
     if (loadBtn) {
         loadBtn.addEventListener("click", async () => {
@@ -236,12 +272,29 @@ window.addEventListener("DOMContentLoaded", () => {
                 });
 
                 if (selected) {
-                    await loadAudioData(selected);
+                    await loadSamplesData(selected);
+                    loadAudio(selected);
                 }
             } catch (error) {
                 console.error("Failed to open file picker:", error);
             }
         });
+    }
+
+    if (audioPlayBtn) {
+        audioPlayBtn.addEventListener("click", () => audioPlay());
+    }
+
+    if (audioPauseBtn) {
+        audioPauseBtn.addEventListener("click", () => audioPause());
+    }
+
+    if (audioStepStartBtn) {
+        audioStepStartBtn.addEventListener("click", () => audioStepStart());
+    }
+
+    if (audioStepEndBtn) {
+        audioStepEndBtn.addEventListener("click", () => audioStepEnd());
     }
 
     if (zoomInBtn) {
@@ -266,8 +319,8 @@ function setupUnifiedScrollbar(): void {
 
     // Update scrollbar content width when channels change
     const updateScrollbarWidth = () => {
-        if (!audioData) return;
-        const totalWidth = (currentZoom + 4) * (audioData.channel1.length + 1);
+        if (!samplesData) return;
+        const totalWidth = (currentZoom + 4) * (samplesData.left.length + 1);
         scrollbar.innerHTML = `<div style="width: ${totalWidth}px; height: 1px;"/>`;
     };
 
@@ -302,6 +355,22 @@ function setupUnifiedScrollbar(): void {
     channelInput.addEventListener("scroll", syncScrollbar);
 
     (window as any).updateScrollbarWidth = updateScrollbarWidth;
+}
+
+function activeStyleForPlayButton(){
+    const audioPlayBtn = document.getElementById("audio-play");
+    const audioPauseBtn = document.getElementById("audio-pause");
+    if (!audioPlayBtn || !audioPauseBtn) return;
+    audioPlayBtn.classList.add("btn-playing")
+    audioPauseBtn.classList.remove("btn-playing")
+}
+
+function activeStyleForPauseButton(){
+    const audioPlayBtn = document.getElementById("audio-play");
+    const audioPauseBtn = document.getElementById("audio-pause");
+    if (!audioPlayBtn || !audioPauseBtn) return;
+    audioPauseBtn.classList.add("btn-playing")
+    audioPlayBtn.classList.remove("btn-playing")
 }
 
 function zoomIn(): void {
