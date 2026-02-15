@@ -112,7 +112,7 @@ function createSampleElement(value: number, index: number, channel: Channel): HT
     if (channel.type === ChannelType.Audio) {// Visual bar representing amplitude
         const bar = document.createElement("div");
         bar.className = "sample-bar";
-        bar.style.height = `${Math.max(Math.abs(value-0.5) * 150, 2)}%`;
+        bar.style.height = `${Math.max(Math.abs(value-0.5) * 200, 2)}%`;
         sample.appendChild(bar);
     }
 
