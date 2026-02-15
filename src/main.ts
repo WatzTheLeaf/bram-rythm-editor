@@ -42,9 +42,9 @@ async function loadAudio(path: string){
         const assetUrl = convertFileSrc(path);
         audio = new Audio(assetUrl);
     } else {
-        // We use base64 loading as a last chance solution due to limitations on Linux
-        // I hope to find a better solution in the future but for now the priority is
-        // to move on to the next step of the project
+        // We use base64 loading as a temp solution due to limitations on Linux
+        // I hope to find a better solution in the future, but I spent enough time on this tool.
+        // For now my priority is to move on to the next step of the project.
         const base64Audio: string = await invoke('read_audio_file_b64', { path });
         audio = new Audio(base64Audio);
     }
