@@ -20,14 +20,15 @@ interface Channel {
 let samplesData: SamplesData | null = null;
 let audio: HTMLAudioElement | null = null;
 let selectedSample: { index: number } | null = null;
-let currentZoom = 40; // Default sample width in pixels
-const MIN_ZOOM = 20;
-const MAX_ZOOM = 100;
-const ZOOM_STEP = 10;
+let currentZoom: number = 40; // Default sample width in pixels
+const MIN_ZOOM: number = 20;
+const MAX_ZOOM: number = 100;
+const ZOOM_STEP: number = 10;
+const SAMPLE_RATE: number = 6;
 
 async function loadSamplesData(path: string): Promise<void> {
 
-    const result: number[][] = await invoke("get_wav_data", {path});
+    const result: number[][] = await invoke("get_wav_data", {path, rate: SAMPLE_RATE});
     samplesData = {
         left: result[0], right: result[1],
     };
@@ -56,7 +57,7 @@ async function loadAudio(path: string){
 function updateAudioCursor(){
     if(!audio) return;
     if(audio.paused) return;
-    selectSample(Math.floor(audio.currentTime * 5));
+    selectSample(Math.floor(audio.currentTime * SAMPLE_RATE));
     requestAnimationFrame(updateAudioCursor)
 }
 

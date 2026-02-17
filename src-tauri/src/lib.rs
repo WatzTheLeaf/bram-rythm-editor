@@ -1,13 +1,12 @@
 use base64::{engine::general_purpose, Engine as _};
-use bram_audio_parser::load_audio_presentation;
+use bram_audio_parser::load_presentation;
 
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
-fn get_wav_data(path: &str) -> Result<Vec<Vec<f32>>, String> {
-    match load_audio_presentation(path) {
+fn get_wav_data(path: &str, rate: u32) -> Result<Vec<Vec<f32>>, String> {
+    match load_presentation(path, rate) {
         Ok(presentation) => Ok(vec![
-            presentation.first_canal_points,
-            presentation.second_canal_points,
+            presentation.left_channel_points,
+            presentation.right_channel_points
         ]),
 
         Err(e) => Err(e.to_string()),

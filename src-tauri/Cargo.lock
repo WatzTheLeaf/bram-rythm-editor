@@ -274,7 +274,7 @@ dependencies = [
 [[package]]
 name = "bram-audio-parser"
 version = "1.0.0"
-source = "git+https://github.com/watztheleaf/bram-audio-parser#969b50a226694fe95f0476ca4effcddc872768d0"
+source = "git+https://github.com/watztheleaf/bram-audio-parser?tag=v1.1.0#cc188478237e4987809934a19536b61c4caac20a"
 
 [[package]]
 name = "bram-rythm-editor"
@@ -282,8 +282,6 @@ version = "1.0.0"
 dependencies = [
  "base64 0.22.1",
  "bram-audio-parser",
- "serde",
- "serde_json",
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",
