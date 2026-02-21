@@ -277,11 +277,20 @@ version = "1.0.0"
 source = "git+https://github.com/watztheleaf/bram-audio-parser?tag=v1.1.0#cc188478237e4987809934a19536b61c4caac20a"
 
 [[package]]
+name = "bram-input-exporter"
+version = "1.0.0"
+source = "git+https://github.com/watztheleaf/bram-input-exporter?tag=v1.0.0#56d28639d1c1950f71313772f5aadddc0bbab0f2"
+dependencies = [
+ "byteorder",
+]
+
+[[package]]
 name = "bram-rythm-editor"
 version = "1.0.0"
 dependencies = [
  "base64 0.22.1",
  "bram-audio-parser",
+ "bram-input-exporter",
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",
